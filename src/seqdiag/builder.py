@@ -14,8 +14,14 @@
 #  limitations under the License.
 
 from seqdiag import parser
-from seqdiag.elements import (Diagram, DiagramNode, NodeGroup,
-                              DiagramEdge, EdgeSeparator, AltBlock)
+from seqdiag.elements import (
+    Diagram,
+    DiagramNode,
+    NodeGroup,
+    DiagramEdge,
+    EdgeSeparator,
+    AltBlock,
+)
 from blockdiag.utils import unquote, XY
 from blockdiag.utils.compat import u
 
@@ -34,7 +40,7 @@ class DiagramTreeBuilder(object):
         for sep in self.diagram.separators:
             self.diagram.edges.remove(sep)
 
-        if self.diagram.activation != 'none':
+        if self.diagram.activation != "none":
             self.create_activities()
 
         if self.diagram.autonumber:
@@ -66,14 +72,19 @@ class DiagramTreeBuilder(object):
             edge.label = u("%d. %s") % (i + 1, edge.label or "")
 
     def create_activities(self):
+        """
+        each activity needs
+        - lifetime list (which orders it's active on)
+        - level (how far over to the right to draw it)
+        - color
+        """
+
         if len(self.diagram.edges) == 0:
             return
 
         first_node = self.diagram.edges[0].node1
-        active_nodes = {first_node: 1}
-        for node in self.diagram.nodes:
-            if node.activated:
-                active_nodes[node] = 1
+        # active_nodes = {first_node: 1}
+        active_colors = {}
 
         edge_count = len(self.diagram.edges) + len(self.diagram.separators)
         for i in range(edge_count):
@@ -82,21 +93,37 @@ class DiagramTreeBuilder(object):
                 edge = match[0]
                 if edge.activate is False:
                     pass
-                elif edge.dir == 'forward':
-                    if edge.node2 in active_nodes:
-                        active_nodes[edge.node2] += 1
+                elif edge.dir == "forward":
+                    if edge.node2 in active_colors:
+                        # Some color has been active on this node
+                        active_colors[edge.node2].append(edge.color)
                     else:
-                        active_nodes[edge.node2] = 1
-                elif edge.dir == 'back':
-                    if edge.node2 in active_nodes:
-                        active_nodes[edge.node2] -= 1
-                    else:
-                        active_nodes[edge.node2] = 0
+                        active_colors[edge.node2] = [edge.color]
 
-            for node in active_nodes:
-                if active_nodes[node] > 0:
-                    for index in range(active_nodes[node]):
-                        node.activate(i, index)
+                    if edge.node1 in active_colors:
+                        # Some color has been active on this node
+                        if edge.color in active_colors[edge.node1]:
+                            color_index = active_colors[edge.node1].index(edge.color)
+                            # edge.node1.deactivate(index=color_index, color=edge.color)
+                            active_colors[edge.node1][color_index] = None
+                            # Trim off right-hand Nones
+                            while (
+                                active_colors[edge.node1]
+                                and active_colors[edge.node1][-1] is None
+                            ):
+                                active_colors[edge.node1].pop()
+                    else:
+                        active_colors[edge.node1] = []
+                # elif edge.dir == "back":
+                #     if edge.node2 in active_nodes:
+                #         active_nodes[edge.node2] -= 1
+                #     else:
+                #         active_nodes[edge.node2] = 0
+
+            for node in active_colors:
+                for index, color in enumerate(active_colors[node]):
+                    # node.activate(height, index)
+                    node.activate(i, index, color)
 
         for node in self.diagram.nodes:
             node.deactivate()
@@ -174,10 +201,10 @@ class DiagramTreeBuilder(object):
                         block.edges.append(edge)
 
             elif isinstance(stmt, parser.Extension):
-                if stmt.type == 'class':
+                if stmt.type == "class":
                     name = unquote(stmt.name)
                     Diagram.classes[name] = stmt
-                elif stmt.type == 'plugin':
+                elif stmt.type == "plugin":
                     self.diagram.set_plugin(stmt.name, stmt.attrs)
 
         return group
@@ -193,9 +220,9 @@ class DiagramTreeBuilder(object):
         edge.set_dir(stmt.edge_type)
         edge.set_attributes(stmt.attrs)
 
-        if edge.dir in ('forward', 'both'):
+        if edge.dir in ("forward", "both"):
             forward = edge.duplicate()
-            forward.dir = 'forward'
+            forward.dir = "forward"
             group.edges.append(forward)
             if block:
                 block.edges.append(forward)
@@ -203,17 +230,23 @@ class DiagramTreeBuilder(object):
         if stmt.followers:
             followers = list(stmt.followers)
             next_edge_type, next_to_node = followers.pop(0)
-            nested = parser.Edge(stmt.to_node, next_edge_type, next_to_node,
-                                 followers, stmt.attrs, stmt.edge_block)
+            nested = parser.Edge(
+                stmt.to_node,
+                next_edge_type,
+                next_to_node,
+                followers,
+                stmt.attrs,
+                stmt.edge_block,
+            )
             self.instantiate_edge(group, block, nested)
         elif stmt.edge_block:
             self.instantiate(group, block, stmt.edge_block)
 
-        if edge.dir in ('back', 'both'):
+        if edge.dir in ("back", "both"):
             reverse = edge.duplicate()
-            reverse.dir = 'back'
-            if edge.dir == 'both':
-                reverse.style = 'dashed'
+            reverse.dir = "back"
+            if edge.dir == "both":
+                reverse.style = "dashed"
                 reverse.label = edge.return_label
                 reverse.leftnote = None
                 reverse.rightnote = None
