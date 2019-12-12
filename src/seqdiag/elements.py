@@ -27,34 +27,50 @@ class DiagramNode(blockdiag.elements.DiagramNode):
         super(DiagramNode, self).__init__(_id)
 
         self.activated = False
-        self.activity = []
+        self.activity = {}
         self.activities = []
 
     def set_activated(self, value):
         self.activated = True
 
-    def activate(self, height, index):
-        if len(self.activity) <= index:
-            self.activity.insert(index, [])
+    def activate(self, height, index, color):
+        """
+        An entity with color `color` entered this node at height `height`
+        """
+        self.activity.setdefault(index, {})
+        self.activity[index].setdefault(color, [])
+        if (
+            len(self.activity[index][color]) > 0
+            and self.activity[index][color][-1] != height - 1
+        ):
+            self.deactivate(index, color)
+        self.activity[index][color].append(height)
 
-        if (len(self.activity[index]) > 0 and
-           (self.activity[index][-1] != height - 1)):
-            self.deactivate(index)
+    def deactivate(self, index=None, color=None):
+        """
+        create an activity entry in self.activities (and clean up self.activity?)
+        """
 
-        self.activity[index].append(height)
-
-    def deactivate(self, index=None):
+        # Catch-all to deactivate everything
         if index is None:
-            for i in range(len(self.activity)):
-                self.deactivate(i)
+            for index in self.activity:
+                for color in self.activity[index]:
+                    self.deactivate(index, color)
             return
 
-        if self.activity[index]:
-            attr = {'lifetime': self.activity[index],
-                    'level': index}
+        # If there's activity,
+        if self.activity[index][color]:
+            lifetime = self.activity[index][color]
+            attr = {
+                "lifetime": lifetime,
+                "level": index,
+                "color": color,
+            }
+            # Wrap it up and save it,
             self.activities.append(attr)
 
-        self.activity[index] = []
+        # Then clear it out to start fresh
+        self.activity[index][color] = []
 
 
 class EdgeSeparator(blockdiag.elements.Base):
@@ -75,10 +91,10 @@ class EdgeSeparator(blockdiag.elements.Base):
         self.color = self.basecolor
         self.order = 0
 
-        if _type == '===':
-            self.type = 'divider'
-        elif _type == '...':
-            self.type = 'delay'
+        if _type == "===":
+            self.type = "divider"
+        elif _type == "...":
+            self.type = "delay"
 
 
 class DiagramEdge(blockdiag.elements.DiagramEdge):
@@ -86,18 +102,18 @@ class DiagramEdge(blockdiag.elements.DiagramEdge):
 
     # name -> (dir, style, asynchronous)
     ARROW_DEF = {
-        'both': ('both', None, False),
-        '=>': ('both', None, False),
-        'forward': ('forward', None, False),
-        '->': ('forward', None, False),
-        '-->': ('forward', 'dashed', False),
-        '->>': ('forward', None, True),
-        '-->>': ('forward', 'dashed', True),
-        'back': ('back', None, False),
-        '<-': ('back', None, False),
-        '<--': ('back', 'dashed', False),
-        '<<-': ('back', None, True),
-        '<<--': ('back', 'dashed', True)
+        "both": ("both", None, False),
+        "=>": ("both", None, False),
+        "forward": ("forward", None, False),
+        "->": ("forward", None, False),
+        "-->": ("forward", "dashed", False),
+        "->>": ("forward", None, True),
+        "-->>": ("forward", "dashed", True),
+        "back": ("back", None, False),
+        "<-": ("back", None, False),
+        "<--": ("back", "dashed", False),
+        "<<-": ("back", None, True),
+        "<<--": ("back", "dashed", True),
     }
 
     @classmethod
@@ -124,7 +140,7 @@ class DiagramEdge(blockdiag.elements.DiagramEdge):
         self.asynchronous = False
         self.diagonal = False
         self.failed = False
-        self.return_label = ''
+        self.return_label = ""
 
     @property
     def left_node(self):
@@ -143,19 +159,19 @@ class DiagramEdge(blockdiag.elements.DiagramEdge):
     @property
     def direction(self):
         if self.node1.xy.x == self.node2.xy.x:
-            direction = 'self'
+            direction = "self"
         elif self.node1.xy.x < self.node2.xy.x:
             # n1 .. n2
-            if self.dir == 'forward':
-                direction = 'right'
+            if self.dir == "forward":
+                direction = "right"
             else:
-                direction = 'left'
+                direction = "left"
         else:
             # n2 .. n1
-            if self.dir == 'forward':
-                direction = 'left'
+            if self.dir == "forward":
+                direction = "left"
             else:
-                direction = 'right'
+                direction = "right"
 
         return direction
 
@@ -166,7 +182,7 @@ class DiagramEdge(blockdiag.elements.DiagramEdge):
         self.diagonal = True
 
     def set_async(self, value):
-        self.dir = 'forward'
+        self.dir = "forward"
 
     def set_return(self, value):
         self.return_label = value
@@ -188,16 +204,14 @@ class DiagramEdge(blockdiag.elements.DiagramEdge):
         else:
             self.dir, self.style, self.asynchronous = params
 
-            if self.node1 == self.node2 and self.dir in ('forward', 'back'):
+            if self.node1 == self.node2 and self.dir in ("forward", "back"):
                 self.activate = False
 
     def to_desctable(self):
         params = (self.dir, self.style, self.asynchronous)
         for arrow_type, settings in self.ARROW_DEF.items():
             if params == settings and not arrow_type.isalpha():
-                label = "%s %s %s" % (self.node1.label,
-                                      arrow_type,
-                                      self.node2.label)
+                label = "%s %s %s" % (self.node1.label, arrow_type, self.node2.label)
                 return [label, self.description]
 
 
@@ -260,7 +274,7 @@ class Diagram(blockdiag.elements.Diagram):
     def __init__(self):
         super(Diagram, self).__init__()
 
-        self.int_attrs.append('edge_length')
+        self.int_attrs.append("edge_length")
 
         self.activation = True
         self.autonumber = False
@@ -284,13 +298,13 @@ class Diagram(blockdiag.elements.Diagram):
 
     def set_activation(self, value):
         value = value.lower()
-        if value == 'none':
+        if value == "none":
             self.activation = value
         else:
             warning("unknown activation style: %s", value)
 
     def set_autonumber(self, value):
-        if value.lower() == 'false':
+        if value.lower() == "false":
             self.autonumber = False
         else:
             self.autonumber = True
