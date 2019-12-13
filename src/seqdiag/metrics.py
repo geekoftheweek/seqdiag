@@ -173,9 +173,9 @@ class DiagramMetrics(blockdiag.metrics.DiagramMetrics):
         index = activity["level"]
         base_x = self.cell(node).bottom.x
         box = Box(
-            base_x + (index - 1) * self.cellsize // 2,
+            base_x + (2 * index - 1) * self.cellsize // 2,
             y1,
-            base_x + (index + 1) * self.cellsize // 2,
+            base_x + (2 * index + 1) * self.cellsize // 2,
             y2,
         )
 

@@ -96,7 +96,13 @@ class DiagramTreeBuilder(object):
                 elif edge.dir == "forward":
                     if edge.node2 in active_colors:
                         # Some color has been active on this node
-                        active_colors[edge.node2].append(edge.color)
+                        # find an index with color None
+                        try:
+                            first_empty_index = active_colors[edge.node2].index(None)
+                            del active_colors[edge.node2][first_empty_index]
+                        except ValueError as e:
+                            first_empty_index = len(active_colors[edge.node2])
+                        active_colors[edge.node2].insert(first_empty_index, edge.color)
                     else:
                         active_colors[edge.node2] = [edge.color]
 
