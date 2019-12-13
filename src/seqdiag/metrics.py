@@ -438,7 +438,7 @@ class EdgeMetrics(object):
         else:
             level = 0
 
-        return m.cellsize // 2 * level
+        return m.cellsize * level
 
     @property
     def leftnotebox(self):
