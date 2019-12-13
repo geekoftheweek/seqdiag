@@ -24,14 +24,14 @@ class DiagramDraw(blockdiag.drawer.DiagramDraw):
 
     def _draw_background(self):
         for node in self.nodes:
-            node.activities.sort(key=lambda x: x['level'])
+            node.activities.sort(key=lambda x: x["level"])
 
-        if self.diagram.shadow_style != 'none':
+        if self.diagram.shadow_style != "none":
             for node in self.nodes:
                 for activity in node.activities:
                     self.node_activity_shadow(node, activity)
 
-        if self.diagram.shadow_style != 'none':
+        if self.diagram.shadow_style != "none":
             for edge in self.edges:
                 self.edge_shadow(edge)
 
@@ -54,15 +54,14 @@ class DiagramDraw(blockdiag.drawer.DiagramDraw):
 
     def node_activity_shadow(self, node, activity):
         box = self.metrics.activity_shadow(node, activity)
-        if self.diagram.shadow_style == 'solid':
+        if self.diagram.shadow_style == "solid":
             self.drawer.rectangle(box, fill=self.shadow)
         else:
-            self.drawer.rectangle(box, fill=self.shadow, filter='transp-blur')
+            self.drawer.rectangle(box, fill=self.shadow, filter="transp-blur")
 
     def node_activity(self, node, activity):
-        box = self.metrics.activity_box(node, activity)
-        self.drawer.rectangle(box, width=1, outline=self.diagram.linecolor,
-                              fill='moccasin')
+        box, color = self.metrics.activity_box(node, activity)
+        self.drawer.rectangle(box, width=1, outline=self.diagram.linecolor, fill=color)
 
     def lifelines(self, node):
         for line, style in self.metrics.lifeline(node):
@@ -78,22 +77,22 @@ class DiagramDraw(blockdiag.drawer.DiagramDraw):
         if edge.leftnote:
             polygon = m.edge(edge).leftnoteshape
             shadow = [XY(pt.x + dx, pt.y + dy) for pt in polygon]
-            if self.diagram.shadow_style == 'solid':
-                self.drawer.polygon(shadow, fill=self.shadow,
-                                    outline=self.shadow)
+            if self.diagram.shadow_style == "solid":
+                self.drawer.polygon(shadow, fill=self.shadow, outline=self.shadow)
             else:
-                self.drawer.polygon(shadow, fill=self.shadow,
-                                    outline=self.shadow, filter='transp-blur')
+                self.drawer.polygon(
+                    shadow, fill=self.shadow, outline=self.shadow, filter="transp-blur"
+                )
 
         if edge.rightnote:
             polygon = m.edge(edge).rightnoteshape
             shadow = [XY(pt.x + dx, pt.y + dy) for pt in polygon]
-            if self.diagram.shadow_style == 'solid':
-                self.drawer.polygon(shadow, fill=self.shadow,
-                                    outline=self.shadow)
+            if self.diagram.shadow_style == "solid":
+                self.drawer.polygon(shadow, fill=self.shadow, outline=self.shadow)
             else:
-                self.drawer.polygon(shadow, fill=self.shadow,
-                                    outline=self.shadow, filter='transp-blur')
+                self.drawer.polygon(
+                    shadow, fill=self.shadow, outline=self.shadow, filter="transp-blur"
+                )
 
     def edge(self, edge):
         # render shaft of edges
@@ -115,63 +114,76 @@ class DiagramDraw(blockdiag.drawer.DiagramDraw):
 
         if edge.leftnote:
             polygon = m.leftnoteshape
-            self.drawer.polygon(polygon, fill=edge.notecolor,
-                                outline=self.fill)
+            self.drawer.polygon(polygon, fill=edge.notecolor, outline=self.fill)
 
             folded = [polygon[1], XY(polygon[1].x, polygon[2].y), polygon[2]]
             self.drawer.line(folded, fill=self.fill)
 
-            self.drawer.textarea(m.leftnotebox, edge.leftnote,
-                                 self.metrics.font_for(edge),
-                                 fill=edge.color, halign='left')
+            self.drawer.textarea(
+                m.leftnotebox,
+                edge.leftnote,
+                self.metrics.font_for(edge),
+                fill=edge.color,
+                halign="left",
+            )
 
         if edge.rightnote:
             polygon = m.rightnoteshape
-            self.drawer.polygon(polygon, fill=edge.notecolor,
-                                outline=self.fill)
+            self.drawer.polygon(polygon, fill=edge.notecolor, outline=self.fill)
 
             folded = [polygon[1], XY(polygon[1].x, polygon[2].y), polygon[2]]
             self.drawer.line(folded, fill=self.fill)
 
-            self.drawer.textarea(m.rightnotebox, edge.rightnote,
-                                 self.metrics.font_for(edge),
-                                 fill=edge.color, halign='left')
+            self.drawer.textarea(
+                m.rightnotebox,
+                edge.rightnote,
+                self.metrics.font_for(edge),
+                fill=edge.color,
+                halign="left",
+            )
 
     def edge_label(self, edge):
         m = self.metrics.edge(edge)
 
         if edge.label:
-            if edge.direction in ('right', 'self'):
-                halign = 'left'
+            if edge.direction in ("right", "self"):
+                halign = "left"
             else:
-                halign = 'right'
+                halign = "right"
 
-            self.drawer.textarea(m.textbox, edge.label,
-                                 self.metrics.font_for(edge),
-                                 fill=edge.color, halign=halign)
+            self.drawer.textarea(
+                m.textbox,
+                edge.label,
+                self.metrics.font_for(edge),
+                fill=edge.color,
+                halign=halign,
+            )
 
     def separator(self, sep):
         m = self.metrics.separator(sep)
         for line in m.lines:
             self.drawer.line(line, fill=self.fill, style=sep.style)
 
-        if sep.type == 'delay':
-            self.drawer.rectangle(m.labelbox, fill='white', outline='white')
-        elif sep.type == 'divider':
-            self.drawer.rectangle(m.labelbox, fill=sep.color,
-                                  outline=sep.linecolor)
+        if sep.type == "delay":
+            self.drawer.rectangle(m.labelbox, fill="white", outline="white")
+        elif sep.type == "divider":
+            self.drawer.rectangle(m.labelbox, fill=sep.color, outline=sep.linecolor)
 
-        self.drawer.textarea(m.labelbox, sep.label,
-                             self.metrics.font_for(sep), fill=sep.textcolor)
+        self.drawer.textarea(
+            m.labelbox, sep.label, self.metrics.font_for(sep), fill=sep.textcolor
+        )
 
     def altblock(self, block):
         m = self.metrics.cell(block)
         self.drawer.rectangle(m, outline=block.linecolor)
 
         box = m.textbox
-        line = [XY(box.x1, box.y2),
-                XY(box.x2, box.y2),
-                XY(box.x2 + self.metrics.cellsize * 2, box.y1)]
+        line = [
+            XY(box.x1, box.y2),
+            XY(box.x2, box.y2),
+            XY(box.x2 + self.metrics.cellsize * 2, box.y1),
+        ]
         self.drawer.line(line, fill=block.linecolor)
-        self.drawer.textarea(box, block.type, fill=block.textcolor,
-                             font=self.metrics.font_for(block))
+        self.drawer.textarea(
+            box, block.type, fill=block.textcolor, font=self.metrics.font_for(block)
+        )
